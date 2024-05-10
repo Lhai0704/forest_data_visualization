@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forest 数据可视化</title>
+    <!-- 导入 echarts 库 -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.0.2/dist/echarts.min.js"></script>
+</head>
+<body>
+    <input type="file" id="fileInput" accept=".csv">
+    <div id="main" style="width: 800px;height:600px;"></div>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            var file = event.target.files[0];
+            var reader = new FileReader();
+            
+            reader.onload = function(event) {
+                var data = event.target.result;
+                processData(data);
+            };
+            
+            reader.readAsText(file);
+        });
+
+        function processData(csvData) {
+            var lines = csvData.split('\n');
+            var headers = lines[0].split(',');
+            var rows = [];
+            for (var i = 1; i < lines.length; i++) {
+                var obj = {};
+                var currentLine = lines[i].split(',');
+                if (currentLine.length === headers.length) {
+                    for (var j = 0; j < headers.length; j++) {
+                        obj[headers[j].trim()] = currentLine[j].trim();
+                    }
+                    rows.push(obj);
+                }
+            }
+
+            var tags = {};
+            for (var i = 0; i < rows.length; i++) {
+                var tag = rows[i]['Tag'];
+                var startTime = new Date(rows[i]['Start Time']);
+                var endTime = new Date(rows[i]['End Time']);
+                var timeSpent = (endTime - startTime) / (1000 * 60); // 计算分钟数
+
+                if (!tags[tag]) {
+                    tags[tag] = 0;
+                }
+                tags[tag] += timeSpent;
+            }
+
+            var tagList = [];
+            var timeList = [];
+            for (var tag in tags) {
+                tagList.push(tag);
+                timeList.push(tags[tag]);
+            }
+
+            var myChart = echarts.init(document.getElementById('main'));
+            var option = {
+                title: {
+                    text: 'Forest 数据可视化 - 标签用时'
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{a} <br/>{b} : {c}min ({d}%)'
+                },
+                legend: {
+                    orient: 'vertical',
+                    left: 'left',
+                    data: tagList
+                },
+                series: [
+                    {
+                        name: '用时',
+                        type: 'pie',
+                        radius: '55%',
+                        center: ['50%', '60%'],
+                        data: tagList.map(function(tag, index) {
+                            return { value: timeList[index], name: tag };
+                        }),
+                        emphasis: {
+                            itemStyle: {
+                                shadowBlur: 10,
+                                shadowOffsetX: 0,
+                                shadowColor: 'rgba(0, 0, 0, 0.5)'
+                            }
+                        }
+                    }
+                ]
+            };
+
+            myChart.setOption(option);
+        }
+    </script>
+</body>
+</html>
